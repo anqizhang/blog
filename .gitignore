@@ -7,4 +7,6 @@ public/
 .deploy*/
 _multiconfig.yml
 source
+!source/images/
+!source/images/**
 yuque.json
