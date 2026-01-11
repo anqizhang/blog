@@ -1,0 +1,573 @@
+import React, { useState, useEffect } from 'react';
+import { Heart, Sparkles, Sun, Wind } from 'lucide-react';
+
+const Softly = () => {
+  const [entries, setEntries] = useState([]);
+  const [currentInput, setCurrentInput] = useState('');
+  const [activeCharacter, setActiveCharacter] = useState(null);
+  const [view, setView] = useState('home'); // 'home', 'add', 'insights', 'memories'
+  const [shakeMemory, setShakeMemory] = useState(null);
+  const [showInfo, setShowInfo] = useState(null); // 显示角色说明
+
+  // 四个神经递质角色
+  const characters = {
+    dopamine: {
+      name: '追光兔',
+      emoji: '🐰',
+      color: '#FFB84D',
+      lightColor: '#FFF9E6',
+      personality: '兴奋、有冲劲',
+      quote: '太好了!我做到了!',
+      keywords: ['完成', '成就', '目标', '任务', '升职', '加薪', '过关', '赢', '成功', '做到', '搞定', '解决', '发现', '学会', '获得', '得到', '买到', '充电', '充满'],
+      // 科学说明
+      scienceName: '多巴胺 (Dopamine)',
+      description: '你的动力引擎和奖励系统',
+      details: [
+        '🎯 功能: 驱动你去追求目标,完成任务后给你满足感',
+        '✨ 感觉: "太好了!我做到了!" 那种成就感',
+        '🔬 机制: 当你完成任务、达成目标、或得到奖励时释放',
+        '⚠️ 注意: 过度追逐多巴胺(刷手机、购物成瘾)会让你疲惫'
+      ],
+      triggers: '完成待办、达成目标、获得认可、买到想要的东西、学会新技能'
+    },
+    serotonin: {
+      name: '温阳猫',
+      emoji: '🐱',
+      color: '#F4C430',
+      lightColor: '#FFF8DC',
+      personality: '平和、自豪',
+      quote: '我有价值',
+      keywords: ['认可', '夸奖', '赞美', '自豪', '重要', '贡献', '帮助', '尊重', '价值', '成长', '进步', '晒太阳', '阳光', '被需要'],
+      scienceName: '血清素 (Serotonin)',
+      description: '你的自信和尊严感',
+      details: [
+        '🌞 功能: 让你感到自信、有价值、被尊重',
+        '✨ 感觉: "我很重要" "我做得很好" 的自豪感',
+        '🔬 机制: 被他人认可、帮助他人、回顾成就、晒太阳时释放',
+        '💡 提示: 抗抑郁药物(SSRIs)就是通过增加血清素来改善情绪'
+      ],
+      triggers: '被夸奖、帮助他人、回顾过去成就、晒太阳、被尊重'
+    },
+    endorphin: {
+      name: '释放熊',
+      emoji: '🧸',
+      color: '#FF85B3',
+      lightColor: '#FFE6F0',
+      personality: '享受、释放',
+      quote: '好舒服啊~',
+      keywords: ['运动', '跑步', '游泳', '洗澡', '热水', '按摩', '放松', '舒服', '大笑', '音乐', '听歌', '好听', '吃辣', '美食', 'spa', '泡澡', '瑜伽'],
+      scienceName: '内啡肽 (Endorphins)',
+      description: '你的天然止痛药和欣快感',
+      details: [
+        '💆 功能: 身体的天然止痛剂,给你"爽"的感觉',
+        '✨ 感觉: 运动后的畅快、热水澡的舒适、大笑的释放',
+        '🔬 机制: 运动、大笑、吃辣、按摩、听音乐时释放',
+        '🏃 经典例子: "跑步者的高潮"(Runner\'s High)就是内啡肽的作用'
+      ],
+      triggers: '运动、大笑、热水澡、按摩、吃辣、听音乐时起鸡皮疙瘩'
+    },
+    oxytocin: {
+      name: '抱抱水獭',
+      emoji: '🦦',
+      color: '#B19CD9',
+      lightColor: '#E6E6FA',
+      personality: '温暖、连接',
+      quote: '我们在一起',
+      keywords: ['朋友', '聊天', '拥抱', '家人', '宠物', '陪伴', '分享', '一起', '温暖', '播客', '慢慢', '小事', '连接', '深聊', '视频', '电话', '团队', '合作'],
+      scienceName: '催产素 (Oxytocin)',
+      description: '你的连接和信任激素',
+      details: [
+        '💝 功能: 创造人与人之间的连接、信任和爱',
+        '✨ 感觉: "好温暖" "不孤单" 被理解的安全感',
+        '🔬 机制: 拥抱、深度对话、照顾他人/宠物时释放',
+        '👶 趣闻: 也叫"爱的激素",在生育、哺乳、亲密关系中起关键作用'
+      ],
+      triggers: '拥抱、深度聊天、和宠物玩、照顾他人、团队合作、收到/送出礼物'
+    }
+  };
+
+  // 🔥 数据持久化: 从 localStorage 加载数据
+  useEffect(() => {
+    try {
+      const savedEntries = localStorage.getItem('softly-entries');
+      if (savedEntries) {
+        const parsed = JSON.parse(savedEntries);
+        setEntries(parsed);
+        console.log('📥 成功加载', parsed.length, '条记录');
+      }
+    } catch (error) {
+      console.error('❌ 加载数据失败:', error);
+    }
+  }, []);
+
+  // 🔥 数据持久化: 保存数据到 localStorage
+  useEffect(() => {
+    if (entries.length > 0) {
+      try {
+        localStorage.setItem('softly-entries', JSON.stringify(entries));
+        console.log('💾 已保存', entries.length, '条记录');
+      } catch (error) {
+        console.error('❌ 保存数据失败:', error);
+      }
+    }
+  }, [entries]);
+
+  // AI 分类函数
+  const classifyEntry = (text) => {
+    const lowerText = text.toLowerCase();
+    const scores = {};
+
+    Object.keys(characters).forEach(type => {
+      scores[type] = characters[type].keywords.filter(keyword =>
+        lowerText.includes(keyword)
+      ).length;
+    });
+
+    const maxScore = Math.max(...Object.values(scores));
+    if (maxScore === 0) return 'dopamine'; // 默认
+
+    const detected = Object.keys(scores).find(type => scores[type] === maxScore);
+    return detected;
+  };
+
+  // 添加记录
+  const addEntry = () => {
+    if (!currentInput.trim()) return;
+
+    const type = classifyEntry(currentInput);
+    const newEntry = {
+      id: Date.now(),
+      text: currentInput,
+      type: type,
+      timestamp: new Date().toISOString(),
+      date: new Date().toLocaleDateString('zh-CN')
+    };
+
+    setEntries([newEntry, ...entries]);
+    setActiveCharacter(type);
+    setCurrentInput('');
+
+    setTimeout(() => {
+      setView('home');
+      setActiveCharacter(null);
+    }, 2000);
+  };
+
+  // 计算统计
+  const getStats = () => {
+    const stats = {
+      dopamine: 0,
+      serotonin: 0,
+      endorphin: 0,
+      oxytocin: 0
+    };
+
+    entries.forEach(entry => {
+      stats[entry.type]++;
+    });
+
+    const total = entries.length || 1;
+    return {
+      counts: stats,
+      percentages: {
+        dopamine: Math.round((stats.dopamine / total) * 100),
+        serotonin: Math.round((stats.serotonin / total) * 100),
+        endorphin: Math.round((stats.endorphin / total) * 100),
+        oxytocin: Math.round((stats.oxytocin / total) * 100)
+      }
+    };
+  };
+
+  // 摇一摇功能
+  const shakeForMemory = () => {
+    if (entries.length === 0) return;
+    const randomEntry = entries[Math.floor(Math.random() * entries.length)];
+    setShakeMemory(randomEntry);
+    setTimeout(() => setShakeMemory(null), 5000);
+  };
+
+  const stats = getStats();
+
+  // 首页视图
+  const HomeView = () => (
+    <div className="space-y-6">
+      {/* 角色们的问候 */}
+      <div className="text-center py-8">
+        <div className="flex justify-center gap-4 mb-4 text-5xl">
+          <button
+            onClick={() => setShowInfo('dopamine')}
+            className="animate-bounce hover:scale-110 transition-transform cursor-pointer"
+            style={{animationDelay: '0s'}}
+          >
+            🐰
+          </button>
+          <button
+            onClick={() => setShowInfo('serotonin')}
+            className="animate-bounce hover:scale-110 transition-transform cursor-pointer"
+            style={{animationDelay: '0.1s'}}
+          >
+            🐱
+          </button>
+          <button
+            onClick={() => setShowInfo('endorphin')}
+            className="animate-bounce hover:scale-110 transition-transform cursor-pointer"
+            style={{animationDelay: '0.2s'}}
+          >
+            🧸
+          </button>
+          <button
+            onClick={() => setShowInfo('oxytocin')}
+            className="animate-bounce hover:scale-110 transition-transform cursor-pointer"
+            style={{animationDelay: '0.3s'}}
+          >
+            🦦
+          </button>
+        </div>
+        <h2 className="text-2xl font-light text-gray-700 mb-2">你的快乐伙伴们在等你</h2>
+        <p className="text-gray-500">今天有什么让你开心的吗?</p>
+        <p className="text-xs text-gray-400 mt-2">💡 点击小动物了解它们</p>
+      </div>
+
+      {/* 快速操作 */}
+      <div className="grid grid-cols-2 gap-4">
+        <button
+          onClick={() => setView('add')}
+          className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-3xl hover:shadow-lg transition-all"
+        >
+          <div className="text-4xl mb-2">✨</div>
+          <div className="font-medium text-gray-700">记录快乐</div>
+        </button>
+
+        <button
+          onClick={shakeForMemory}
+          className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 rounded-3xl hover:shadow-lg transition-all"
+        >
+          <div className="text-4xl mb-2">🎲</div>
+          <div className="font-medium text-gray-700">摇一摇</div>
+        </button>
+
+        <button
+          onClick={() => setView('insights')}
+          className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-3xl hover:shadow-lg transition-all"
+        >
+          <div className="text-4xl mb-2">📊</div>
+          <div className="font-medium text-gray-700">快乐地图</div>
+        </button>
+
+        <button
+          onClick={() => setView('memories')}
+          className="p-6 bg-gradient-to-br from-green-50 to-teal-50 rounded-3xl hover:shadow-lg transition-all"
+        >
+          <div className="text-4xl mb-2">💭</div>
+          <div className="font-medium text-gray-700">回忆录</div>
+        </button>
+      </div>
+
+      {/* 最近的快乐 */}
+      {entries.length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-lg font-medium text-gray-700 mb-3">最近的快乐时刻</h3>
+          <div className="space-y-2">
+            {entries.slice(0, 3).map(entry => (
+              <div
+                key={entry.id}
+                className="p-4 rounded-2xl bg-white border border-gray-100 hover:shadow-md transition-all"
+                style={{borderLeftColor: characters[entry.type].color, borderLeftWidth: '4px'}}
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{characters[entry.type].emoji}</span>
+                  <div className="flex-1">
+                    <p className="text-gray-700">{entry.text}</p>
+                    <p className="text-xs text-gray-400 mt-1">{entry.date}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 摇一摇弹窗 */}
+      {shakeMemory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-8 max-w-md animate-bounce">
+            <div className="text-center">
+              <div className="text-6xl mb-4">{characters[shakeMemory.type].emoji}</div>
+              <div className="text-sm text-gray-500 mb-2">{shakeMemory.date}</div>
+              <p className="text-lg text-gray-700 mb-4">"{shakeMemory.text}"</p>
+              <p className="text-sm text-gray-500">还记得那天的感觉吗? ✨</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // 添加记录视图
+  const AddView = () => (
+    <div className="space-y-6">
+      <button
+        onClick={() => setView('home')}
+        className="text-gray-500 hover:text-gray-700"
+      >
+        ← 返回
+      </button>
+
+      <div className="text-center py-6">
+        <h2 className="text-2xl font-light text-gray-700 mb-2">今天什么让你开心?</h2>
+        <p className="text-gray-500 text-sm">慢慢说,我在听~</p>
+      </div>
+
+      <div className="space-y-4">
+        <textarea
+          value={currentInput}
+          onChange={(e) => setCurrentInput(e.target.value)}
+          placeholder="比如: 早上洗热水澡很舒服..."
+          className="w-full p-4 rounded-2xl border-2 border-gray-200 focus:border-purple-300 focus:outline-none resize-none"
+          rows="4"
+        />
+
+        <button
+          onClick={addEntry}
+          disabled={!currentInput.trim()}
+          className="w-full py-4 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-2xl font-medium hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          记录这个时刻 ✨
+        </button>
+      </div>
+
+      {/* 角色反馈 */}
+      {activeCharacter && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div
+            className="rounded-3xl p-8 max-w-md text-center animate-bounce"
+            style={{backgroundColor: characters[activeCharacter].lightColor}}
+          >
+            <div className="text-7xl mb-4">{characters[activeCharacter].emoji}</div>
+            <div className="text-xl font-medium mb-2" style={{color: characters[activeCharacter].color}}>
+              {characters[activeCharacter].name}
+            </div>
+            <p className="text-gray-700 mb-2">
+              "听起来是我的时刻!"
+            </p>
+            <p className="text-sm text-gray-600">
+              {characters[activeCharacter].quote}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // 洞察视图
+  const InsightsView = () => (
+    <div className="space-y-6">
+      <button
+        onClick={() => setView('home')}
+        className="text-gray-500 hover:text-gray-700"
+      >
+        ← 返回
+      </button>
+
+      <div className="text-center py-6">
+        <h2 className="text-2xl font-light text-gray-700 mb-2">你的快乐地图</h2>
+        <p className="text-gray-500 text-sm">已记录 {entries.length} 个快乐时刻</p>
+      </div>
+
+      {entries.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-400">还没有记录哦,开始记录你的第一个快乐吧!</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* 四个角色的活跃度 */}
+          {Object.keys(characters).map(type => {
+            const char = characters[type];
+            const percentage = stats.percentages[type];
+            const count = stats.counts[type];
+
+            return (
+              <div key={type} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setShowInfo(type)}
+                    className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                  >
+                    <span className="text-3xl">{char.emoji}</span>
+                    <div className="text-left">
+                      <div className="font-medium text-gray-700">{char.name}</div>
+                      <div className="text-xs text-gray-500">{char.personality}</div>
+                    </div>
+                  </button>
+                  <div className="text-right">
+                    <div className="text-lg font-medium" style={{color: char.color}}>
+                      {percentage}%
+                    </div>
+                    <div className="text-xs text-gray-500">{count}次</div>
+                  </div>
+                </div>
+
+                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${percentage}%`,
+                      backgroundColor: char.color
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+
+          {/* 温柔的建议 */}
+          <div className="mt-8 p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-3xl">
+            <h3 className="font-medium text-gray-700 mb-3">💭 温柔的观察</h3>
+            {stats.percentages.dopamine > 50 && (
+              <p className="text-gray-600 text-sm leading-relaxed">
+                追光兔最近很活跃呢!你在完成很多事情~ 要不要也给其他小伙伴一些时间?
+              </p>
+            )}
+            {stats.percentages.oxytocin < 10 && entries.length > 5 && (
+              <p className="text-gray-600 text-sm leading-relaxed">
+                抱抱水獭好想你...要不要联系一下朋友,或者给家人打个电话?
+              </p>
+            )}
+            {stats.percentages.endorphin < 10 && entries.length > 5 && (
+              <p className="text-gray-600 text-sm leading-relaxed">
+                释放熊需要你的关注!去运动一下,或者洗个舒服的热水澡吧~
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // 回忆录视图
+  const MemoriesView = () => (
+    <div className="space-y-6">
+      <button
+        onClick={() => setView('home')}
+        className="text-gray-500 hover:text-gray-700"
+      >
+        ← 返回
+      </button>
+
+      <div className="text-center py-6">
+        <h2 className="text-2xl font-light text-gray-700 mb-2">所有快乐时刻</h2>
+      </div>
+
+      {entries.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="text-6xl mb-4">🌱</div>
+          <p className="text-gray-400">你的快乐花园等待第一朵花绽放</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {entries.map(entry => (
+            <div
+              key={entry.id}
+              className="p-5 rounded-2xl bg-white border border-gray-100 hover:shadow-lg transition-all"
+              style={{borderLeftColor: characters[entry.type].color, borderLeftWidth: '4px'}}
+            >
+              <div className="flex items-start gap-4">
+                <span className="text-3xl">{characters[entry.type].emoji}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="font-medium" style={{color: characters[entry.type].color}}>
+                      {characters[entry.type].name}
+                    </span>
+                    <span className="text-xs text-gray-400">{entry.date}</span>
+                  </div>
+                  <p className="text-gray-700 leading-relaxed">{entry.text}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 p-6">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-light text-gray-800 mb-2">Softly</h1>
+          <p className="text-gray-500 text-sm">慢慢来,记录你的快乐</p>
+        </div>
+
+        {/* Main Content */}
+        <div className="bg-white rounded-3xl shadow-xl p-8">
+          {view === 'home' && <HomeView />}
+          {view === 'add' && <AddView />}
+          {view === 'insights' && <InsightsView />}
+          {view === 'memories' && <MemoriesView />}
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-6 text-xs text-gray-400">
+          温柔地对待自己 · 慢慢地感受快乐
+        </div>
+
+        {/* 角色信息弹窗 */}
+        {showInfo && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowInfo(null)}
+          >
+            <div
+              className="rounded-3xl p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto"
+              style={{backgroundColor: characters[showInfo].lightColor}}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 角色头部 */}
+              <div className="text-center mb-6">
+                <div className="text-7xl mb-3">{characters[showInfo].emoji}</div>
+                <div className="text-2xl font-medium mb-1" style={{color: characters[showInfo].color}}>
+                  {characters[showInfo].name}
+                </div>
+                <div className="text-lg text-gray-600 mb-2">
+                  {characters[showInfo].scienceName}
+                </div>
+                <div className="text-sm text-gray-500 italic">
+                  {characters[showInfo].description}
+                </div>
+              </div>
+
+              {/* 详细说明 */}
+              <div className="space-y-4 mb-6">
+                {characters[showInfo].details.map((detail, index) => (
+                  <div key={index} className="bg-white bg-opacity-50 rounded-2xl p-4">
+                    <p className="text-sm text-gray-700 leading-relaxed">{detail}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* 触发场景 */}
+              <div className="bg-white bg-opacity-50 rounded-2xl p-4 mb-6">
+                <div className="font-medium text-gray-700 mb-2 text-sm">🎯 如何触发:</div>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {characters[showInfo].triggers}
+                </p>
+              </div>
+
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setShowInfo(null)}
+                className="w-full py-3 bg-white rounded-2xl font-medium hover:shadow-lg transition-all"
+                style={{color: characters[showInfo].color}}
+              >
+                知道了 ✨
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Softly;
