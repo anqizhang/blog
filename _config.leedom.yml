@@ -21,6 +21,11 @@ footer:
 
 link:
   -
+    name: life
+    icon: edit
+    path: https://life.anqi.rocks
+    target: _blank
+  -
     name: email
     icon: envelope
     path: mail:zhanganqi0027@gmail.com
