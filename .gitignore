@@ -9,4 +9,6 @@ _multiconfig.yml
 source
 !source/images/
 !source/images/**
+!source/softly/
+!source/softly/**
 yuque.json
